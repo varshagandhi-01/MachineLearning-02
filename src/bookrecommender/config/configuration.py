@@ -3,7 +3,7 @@ import sys
 from bookrecommender.logger.log import logging
 from bookrecommender.utils.utils import read_yaml_file
 from bookrecommender.exception.exception_handler import AppException
-from bookrecommender.entity.config_entity import (DataIngestionConfig)
+from bookrecommender.entity.config_entity import (DataIngestionConfig, DataValidationConfig)
 from bookrecommender.constants import *
 
 class AppConfiguration:
@@ -35,3 +35,30 @@ class AppConfiguration:
         except Exception as e:
             raise AppException(e, sys) from e         
 
+
+    def get_data_validation_config(self) -> DataValidationConfig:
+        try:
+            data_validation_config = self.config_info['data_validation_config']
+            data_ingestion_config = self.config_info['data_ingestion_config']
+            dataset_dir = data_ingestion_config['dataset_dir']
+            artifacts_dir = self.config_info['artifacts_config']['artifacts_dir']
+            books_csv_file = data_validation_config['books_csv_file']
+            ratings_csv_file = data_validation_config['ratings_csv_file']
+
+            books_csv_file_dir = os.path.join(artifacts_dir, dataset_dir, data_ingestion_config['ingested_dir'], books_csv_file)
+            ratings_csv_file_dir = os.path.join(artifacts_dir, dataset_dir, data_ingestion_config['ingested_dir'], ratings_csv_file)
+            clean_data_path = os.path.join(artifacts_dir, dataset_dir, data_validation_config['clean_data_dir'])
+            serialized_objects_dir = os.path.join(artifacts_dir, data_validation_config['serialized_objects_dir'])
+
+            response = DataValidationConfig(
+                clean_data_dir=clean_data_path,
+                books_csv_file=books_csv_file_dir,
+                ratings_csv_file=ratings_csv_file_dir,
+                serialized_objects_dir=serialized_objects_dir
+            )
+
+            logging.info(f"Data validation config: {response}")
+            return response
+
+        except Exception as e:
+            raise AppException(e, sys) from e
