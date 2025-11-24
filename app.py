@@ -1,11 +1,116 @@
-from bookrecommender.exception.exception_handler import AppException
+import os
+import sys
+import pickle
+import streamlit as st
+import numpy as np
 from bookrecommender.logger.log import logging
-import sys 
+from bookrecommender.config.configuration import AppConfiguration
+from bookrecommender.exception.exception_handler import AppException
+from bookrecommender.pipeline.training_pipeline import TrainingPipeline
 
-try:
+class Recommendation:
+    def __init__(self, app_config=AppConfiguration()):
+        try:
+            self.recommendation_config = app_config.get_recommendation_config()
 
-    a = 3/0
+        except Exception as e:
+            raise AppException(e, sys) from e 
 
-except Exception as e:
-    logging.info(e)
-    raise AppException(e, sys) from e
+    def fetch_poster(self, suggestion):
+        try:
+            book_name = []
+            ids_index = []
+            poster_url = []
+            book_pivot = pickle.load(open(self.recommendation_config.book_pivot_serialized_objects, 'rb'))
+            final_rating = pickle.load(open(self.recommendation_config.final_rating_serialized_objects, 'rb'))
+
+            for book_id in suggestion:
+                book_name.append(book_pivot.index[book_id])
+
+            for name in book_name[0]:
+                ids = np.where(final_rating['title']==name)[0][0]
+                ids_index.append(ids)
+
+            for idx in ids_index:
+                url = final_rating.iloc[idx]['image-url']
+                poster_url.append(url)
+
+            return poster_url
+
+        except Exception as e:
+            raise AppException(e, sys) from e 
+
+    def recommend_book(self, book_name):
+        try:
+            book_list = []
+            model = pickle.load(open(self.recommendation_config.trained_model_path, 'rb'))
+            book_pivot = pickle.load(open(self.recommendation_config.book_pivot_serialized_objects, 'rb'))
+            book_id = np.where(book_pivot.index == book_name)[0][0]
+            distance, suggestion = model.kneighbors(book_pivot.iloc[book_id,:].values.reshape(1, -1), n_neighbors = 6)
+
+            poster_url = self.fetch_poster(suggestion)
+
+            for i in range(len(suggestion)):
+                books = book_pivot.index[suggestion[i]]
+                for j in books:
+                    book_list.append(j)
+            
+            return book_list, poster_url
+
+        except Exception as e:
+            raise AppException(e, sys) from e  
+
+
+    def train_engine(self):
+        try:
+            obj = TrainingPipeline()
+            obj.start_training_pipeline()
+            st.text("Training completed")
+            logging.info(f"Trained successfully")
+
+        except Exception as e:
+            raise AppException(e, sys) from e 
+        
+    def recommendation_engine(self, selected_books):
+        try:
+            recommended_books, poster_url = self.recommend_book(selected_books)
+            col1, col2, col3, col4, col5 = st.columns(5)
+
+            with col1:
+                st.text(recommended_books[1])
+                st.image(poster_url[1])
+            with col2:
+                st.text(recommended_books[2])
+                st.image(poster_url[2])
+            with col3:
+                st.text(recommended_books[3])
+                st.image(poster_url[3])            
+            with col4:
+                st.text(recommended_books[4])
+                st.image(poster_url[4])
+            with col5:
+                st.text(recommended_books[5])
+                st.image(poster_url[5])    
+
+        except Exception as e:
+            raise AppException(e, sys) from e 
+        
+if __name__ == "__main__":
+    st.header("Book Recommendation System")
+    
+    obj = Recommendation()
+
+    if st.button("Train"):
+        obj.train_engine()
+
+    book_names = pickle.load(open(os.path.join(obj.recommendation_config.book_name_serialized_objects), 'rb'))
+    selected_books = st.selectbox(
+        "Type or select a book from the dropdown", book_names)
+    
+    if st.button("Recommend"):
+        obj.recommendation_engine(selected_books)
+
+                             
+
+
+    
