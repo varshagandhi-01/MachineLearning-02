@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     book_names = pickle.load(open(os.path.join(obj.recommendation_config.book_name_serialized_objects), 'rb'))
     selected_books = st.selectbox(
-        "Type or select a book from the dropdown", book_names)
+        "Type or select a book from the dropdown to see your recommendations", book_names)
     
     if st.button("Recommend"):
         obj.recommendation_engine(selected_books)
