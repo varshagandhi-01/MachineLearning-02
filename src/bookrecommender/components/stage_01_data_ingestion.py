@@ -1,4 +1,4 @@
-import os
+import os #import packages
 import sys
 from six.moves import urllib
 import zipfile

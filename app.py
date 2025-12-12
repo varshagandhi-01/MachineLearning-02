@@ -69,6 +69,7 @@ class Recommendation:
             logging.info(f"Trained successfully")
 
         except Exception as e:
+            logging.info(f"{e}")
             raise AppException(e, sys) from e 
         
     def recommendation_engine(self, selected_books):
